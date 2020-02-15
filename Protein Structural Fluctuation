@@ -1,0 +1,68 @@
+#!/usr/bin/python3/
+import numpy as np
+import sys
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import prody as pd
+from prody import parsePDB
+from prody import *
+import py3Dmol
+
+#Download PDB file from online databank https://www.rcsb.org/ 
+protein = parsePDB(sys.argv[1])
+prody.LOGGER._setverbosity('none')
+
+#Create Gaussian Network Model of Protein and calculate the max fluctuation
+GNM1 = calcGNM(protein)
+SqGNM1 = calcSqFlucts(GNM1[0])
+Max_SqGNM1 = SqGNM1.max()
+
+print('Max GNM SqFluct:', "{0:.3f}".format(round(Max_SqGNM1,3)))
+
+#Create Anisotropic Network Model of Protein and calculate the max fluctuation
+ANM1 = calcANM(protein)
+SqANM1 = calcSqFlucts(ANM1[0])
+Max_SqANM1 = SqANM1.max()
+
+print('Max ANM SqFluct:', "{0:.3f}".format(round(Max_SqANM1,3)))
+
+#Compute the absolute value of the max difference between these two calculations for each atom
+Max_abs = abs(SqGNM1 - SqANM1).max()
+
+#print('Max Abs Difference:', "{0:.3f}".format(round(Max_abs,3)))
+
+#Normalized absolute value of the max difference between these two calculations for each atom
+SqGNM2 = SqGNM1/SqGNM1.max()
+SqANM2 = SqANM1/SqANM1.max()
+Max_abs2 = abs(SqGNM2 - SqANM2).max()
+
+print('Max Abs Difference:', "{0:.3f}".format(round(Max_abs2,3)))
+
+#Positions of Largest difference bewtween the two models
+z = abs(SqGNM2-SqANM2)
+t = list(enumerate(z))
+q = sorted(t, key = lambda tup:(tup[1]), reverse = True)
+#for i in list(range(10)):
+    #print ("{0:.3f}".format(round(q[i][1], 3)),q[i][0])
+    
+#ID the Amino Acids of Largest Fluctuation difference bewtween the two models
+o=[]
+for i in range(0,len(q)):
+    o.append(q[i][0])
+
+mycalpha=protein.calpha
+h = mycalpha.getResnames()
+j = mycalpha.getResnums()
+
+w=[]
+for i in o:
+    w.append(h[i])
+    
+st=[]
+for i in o:
+    st.append(j[i])
+    
+r = list(zip(w,st))
+for i in list(range(10)):
+    print ("{0:.3f}".format(round(q[i][1], 3)),r[i][0]+str(r[i][1]))
